@@ -1,7 +1,7 @@
 output "eks_cluster_endpoint" {
-  value = aws_eks_cluster.aws_eks.endpoint
+  value = module.eks.eks_cluster_endpoint
 }
 
 output "eks_cluster_certificat_authority" {
-  value = aws_eks_cluster.aws_eks.certificate_authority
+  value = module.eks.eks_cluster_certificat_authority
 }

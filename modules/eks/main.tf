@@ -28,20 +28,20 @@ resource "aws_iam_role_policy_attachment" "AmazonEKSServicePolicy" {
 }
 
 resource "aws_eks_cluster" "aws_eks" {
-  name     = "eks_cluster_tuto"
+  name     = var.NAME
   role_arn = aws_iam_role.eks_cluster.arn
 
   vpc_config {
-    subnet_ids = ["subnet-0ddc09c59c6c8ebb2", "subnet-030472fd339690221"]
+    subnet_ids = var.SUBNET_IDS
   }
 
   tags = {
-    Name = "EKS_tuto"
+    Name = "EKS"
   }
 }
 
 resource "aws_iam_role" "eks_nodes" {
-  name = "eks-node-group-tuto"
+  name = "eks-node-group"
 
   assume_role_policy = <<POLICY
 {
@@ -76,13 +76,13 @@ resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
 
 resource "aws_eks_node_group" "node" {
   cluster_name    = aws_eks_cluster.aws_eks.name
-  node_group_name = "node_tuto"
+  node_group_name = "node"
   node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = ["subnet-0ddc09c59c6c8ebb2", "subnet-030472fd339690221"]
+  subnet_ids      = var.SUBNET_IDS
 
   scaling_config {
     desired_size = 1
-    max_size     = 1
+    max_size     = 2
     min_size     = 1
   }
 

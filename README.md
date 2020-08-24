@@ -36,10 +36,66 @@ aws_secret_access_key = FC*******************q27v
 **- note:** 
   Setup AWS credential for Windows or mac from [here](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html).
 
-## Step-2 Install Terraform:
+## Step-2 Terraform:
+
+### 2.a Install:
 
 - Download Terraform 0.12 [here](https://releases.hashicorp.com/terraform/) and follow the guide [here](https://www.terraform.io/intro/getting-started/install.html) on how to install Terraform on your specific system.
 - Check terraform installation Run: `terraform version`
+
+### 2.b RUN:
+- Edit values based in your project in `terraform.vars` file:
+```tf
+NAME="eks-cluster"
+#"Cluster name"
+min_size="1"
+#"Minimum number of worker nodes"
+max_size="2"
+#"Maximum number of worker nodes"
+VPC_CIDR="10.0.0.0/16"
+#"first availability zone"
+AZ_1="us-east-1a"
+
+# "subnet for the first Availability Zone"
+SUBNET_1_CIDR="10.0.1.0/24"
+
+#"second availability zone"
+AZ_2="us-east-1b"
+
+#"subnet for the second Availability Zone"
+SUBNET_2_CIDR="10.0.2.0/24"
+```
+- RUN `terraform init`
+
+  > *This command will download and initialize the appropriate provider plugins.*
+- RUN `terraform plan` 
+
+  >   *This command will let us see what Terraform will do before we decide to apply it.*
+- RUN `terraform apply -var-file terraform.tfvars` 
+
+  >  *This command will provision the eks cluster.*
+- Wait till the end of provisioning, you will get a completion message and outputs for Example:
+
+ ```
+Apply complete! Resources: 16 added, 0 changed, 0 destroyed.
+Outputs:
+
+eks_cluster_certificat_authority = [
+  {
+    "data" = "LS0tLS1CRUdJTiBDRV*************VSVElGSUNBVEUtLS0tLQo="
+  },
+]
+eks_cluster_endpoint = https://99*****2F606A8.gr7.us-east-1.eks.amazonaws.com
+  ```
+## Step-3 Connect to cluster
+- Install `kubectl` in local machine based on your OS [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- RUN `export KUBECONFIG=~/.kube/config`
+     *to set the kubernetes configuration in PATH.*
+- RUN `aws eks update-kubeconfig --name "CLUSTER-NAME"`
+     *this command will generate a config file under ~/.kube directory with all configuration required.*
+- RUN `kubectl cluster-info`
+     *to get cluster details and check your configuration.*
+
 
 ## Step-3 Deploy Atlantis:
 
