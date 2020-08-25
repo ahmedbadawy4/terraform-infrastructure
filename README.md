@@ -43,7 +43,49 @@ aws_secret_access_key = FC*******************q27v
 - Download Terraform 0.12 [here](https://releases.hashicorp.com/terraform/) and follow the guide [here](https://www.terraform.io/intro/getting-started/install.html) on how to install Terraform on your specific system.
 - Check terraform installation Run: `terraform version`
 
-### 2.b RUN:
+### 2.b initial configurations:
+
+- Setup S3 bucket as a backend to terraform.tfstate file:
+*DON'T* make sure that the S3 bucket is not public!
+*Setup S3 permission:*        Navigate to Permission > Bucker Policy  and add the below policy:
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::451098466741:user/<your_AWS_User_name>"
+            },
+            "Action": "s3:ListBucket",
+            "Resource": "arn:aws:s3:::<BUCKET_NAME>"
+        },
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::451098466741:user/<your_AWS_User_name>"
+            },
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject"
+            ],
+            "Resource": "arn:aws:s3:::<BUCKET_NAME>/*"
+        }
+    ]
+}
+```
+- Add `S3 bucket name` and `path to terraform.tfstate` in `backend.tf` file:
+
+```
+terraform {
+  backend "s3" {
+    bucket = "<Bucket_NAME>"
+    key    = "PATH/TO/terraform.tfstate"
+    region = "<BUCKEt_REGION>"
+  }
+}
+```
+
 - Edit values based in your project in `terraform.vars` file:
 ```tf
 NAME="eks-cluster"
