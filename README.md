@@ -10,7 +10,6 @@ This is a technical guide to provision EKS cluster in was using terraform and de
 - [Provision EKS](#provesion_EKS)
 - [Deploy Atlantis](#Deploy_Atlantis)
 
-
 ## Prerequisites
 - AWS account [Signup/Login](https://console.aws.amazon.com/console/home?nc2=h_ct&src=header-signin)
 
