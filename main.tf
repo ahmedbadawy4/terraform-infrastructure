@@ -12,5 +12,7 @@ module "eks" {
   min_size   = var.min_size
   max_size   = var.max_size
   NAME       = var.NAME
+  INSTANCE_TYPE = var.INSTANCE_TYPE
+  WORKER_KEY = var.WORKER_KEY
   SUBNET_IDS = module.vpc.SUBNET_IDS
 }

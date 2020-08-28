@@ -16,3 +16,9 @@ AZ_2 = "us-east-1b"
 
 #"subnet for the second Availability Zone"
 SUBNET_2_CIDR = "10.0.2.0/24"
+
+# Worker node type 
+INSTANCE_TYPE = "t2.medium"
+
+# Worker node key, it should be created before RUnning terraform code
+WORKER_KEY = "eks-worker-key"

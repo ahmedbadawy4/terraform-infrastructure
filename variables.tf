@@ -36,3 +36,11 @@ variable "min_size" {
   #  default = "1"
   description = "min_size"
 }
+
+variable "INSTANCE_TYPE" {
+  description = "instance type and size"
+}
+
+variable "WORKER_KEY" {
+  description = "instance type and size"
+}
