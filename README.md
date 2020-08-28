@@ -215,3 +215,5 @@ After approving the plan RUN `atlantis apply -d . ` to apply changes then you Me
 2- Use the official terraform EKS module to get more variety and more customization.
 
 3- Configured Multiple IAM roles with different levels of permissions (depend on each team's requirements).
+
+4- protect aster branch "Protected branches are available to Pro, Team, and Enterprise users"
