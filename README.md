@@ -24,11 +24,11 @@ This is a technical guide to provision EKS cluster in AWS using terraform and de
 
 2- Either Attached the AdministratorAccess policy or add the new user to the admin group or add specific policies one by one.  
 
-3- Download the credentials.csv file which contain te new user credentials.
+3- Download the credentials.csv file which contains the new user credentials.
 
 4- Add AWS credentials in your local machine:
 
-   - Setup AWS credential for Windows or mac from [here](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html).   
+   - Setup AWS credential for Windows or Mac from [here](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html).   
 
   - Setup AWS credential for Linux:  ```mkdir -p ~/.aws/ && touch ~/.aws/credentials``` with the below syntax and add the **Access key ID** and **Secret access key**.
 ```bash
@@ -88,7 +88,7 @@ terraform {
 }
 ```
 
-- Edit values based in your project in `terraform.vars` file based on your project.
+- Edit values based on your project in `terraform.vars` file-based on your project.
 
 - RUN `terraform init` **to download and initialize the appropriate provider plugins.**
 - RUN `terraform plan` **to see what Terraform will do before we decide to apply it.**
@@ -187,10 +187,10 @@ defaultTFVersion: 0.12.26
   
 **4.c Configuring Webhooks** Official documentation [here](https://www.runatlantis.io/docs/configuring-webhooks.html#github-github-enterprise)
 - navigate to the repository home page and click `Settings`. 
-- Select `Webhooks` or Hooks in the sidebar and Click `Add webhook`
+- Select `Webhooks` or Hooks in the sidebar and click `Add webhook`
 - Set Payload URL to http://$URL/events (or https://$URL/events if you're using SSL) where $URL is where Atlantis is hosted.
   > in my case `$URL = http://ec2_public_IP:nodePort` 
-- set Content type to application/json
+- set Content-type to application/json
 - set Secret to the Webhook Secret you generated previously
   > NOTE If you're adding a webhook to multiple repositories, each repository will need to use the same secret.
 - select Let me select individual events
@@ -200,19 +200,23 @@ defaultTFVersion: 0.12.26
   - Issue comments
   - Pull requests
 - leave Active checked
-- click Add webhook
+- Click Add webhook
 
 ## Step-5 Get Started [here](https://www.runatlantis.io/guide/#getting-started)
 
 - add changes in any branch and open a PUll request then the atlantis will plan the terraform code automatically.
 - want to plan again? `atlantis plan -d .` and atlantis will comment back the plan output of the terraform code changed 
 
-After approve the plan RUN `atlantis apply -d . ` to apply changes then you Merge the code 
+After approving the plan RUN `atlantis apply -d . ` to apply changes then you Merge the code 
 ![Github PR](/images/atlantis_Github_screenshoot.png)
 
 - visit Atlantis URL `http://ec2_ip:nodePort` you will get the lock of this PR:
 ![Atlantis interface](/images/atlantis_lock_screenshoot.png)
 ## To-Do-List:
-1- setup an atlantis domain with SSL and configure it to overcome disconnection in case nodePort changed for any reason.
+1- setup an Atlantis domain with SSL and configure it to overcome disconnection in case nodePort changed for any reason.
 
-2- 
+2- Use the official terraform EKS module to get more variety and more customization.
+
+3- Configured Multiple IAM roles with different levels of permissions (depend on each team's requirements).
+
+4- protect aster branch "Protected branches are available to Pro, Team, and Enterprise users"
