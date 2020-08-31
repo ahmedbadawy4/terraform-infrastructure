@@ -23,3 +23,27 @@ variable "INSTANCE_TYPE" {
 variable "WORKER_KEY" {
   description = "instance type and size"
 }
+
+variable "HOSTED-ZONE" {
+  description = "hosted zone ID"
+}
+
+
+
+variable "VPC-IDS" {
+  description = "vpc ID"
+}
+
+variable "REAGION" {
+  description = "reagion name ID"
+}
+
+
+
+variable "SUBNET_1_ID" {
+  description = "SUBNET_1_ID"
+}
+
+variable "SUBNET_2_ID" {
+  description = "SUBNET_2_ID"
+}

@@ -44,3 +44,15 @@ variable "INSTANCE_TYPE" {
 variable "WORKER_KEY" {
   description = "instance type and size"
 }
+
+
+
+variable "HOSTED-ZONE" {
+  description = "hosted zone ID"
+}
+
+
+
+variable "REAGION" {
+  description = "AWS reagion"
+}
