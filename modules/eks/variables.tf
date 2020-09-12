@@ -15,3 +15,11 @@ variable "min_size" {
 variable "SUBNET_IDS" {
   description = "subnet_ids"
 }
+
+variable "INSTANCE_TYPE" {
+  description = "instance type and size"
+}
+
+variable "WORKER_KEY" {
+  description = "instance type and size"
+}

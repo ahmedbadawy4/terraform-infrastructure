@@ -1,12 +1,15 @@
 # Luminor assessment overview
 
-This is a technical guide to provision EKS cluster in was using terraform and deploy Atlantis application on top of EKS to automating Terraform via pull requests.
+This is a technical guide to provision EKS cluster in AWS using terraform and deploy atlantis application to bring the benefits of code review to your operations workflow, catch errors in the Terraform plan output before it's applied and ensure that you apply changes before merging to master. via pull requests.
 
 ## 📝 Table of Contents:
 
 - [Prerequisites](#Prerequisites)
-- [Setup AWS credentials](#new_environment)
-- [Install Terraform](#Install_Terraform)
+- [Step-1 Setup AWS credentials](#new_environment)
+- [Step-2 Terraform](#Install_Terraform)
+- [Step-3 Connect to EKS cluster]()
+- [Step-4 Setup Atlantis]()
+- [Step-5 Get Started]()
 - [Provision EKS](#provesion_EKS)
 - [Deploy Atlantis](#Deploy_Atlantis)
 
@@ -112,9 +115,9 @@ eks_cluster_endpoint = https://99*****2F6**0**6A8.gr7.us-east-1.eks.amazonaws.co
      *to get cluster details and check your configuration.*
 
 
-## Step-3 Setup Atlantis: [official documentations](https://www.runatlantis.io/docs/)
+## Step-4 Setup Atlantis: [official documentations](https://www.runatlantis.io/docs/)
 
-### 3.a prerequisites:
+### 4.a prerequisites:
   - get terraform version `terraform --version`
   -  install and configure helm:
 ```bash
@@ -130,7 +133,7 @@ kubectl --namespace kube-system get pods | grep tiller
 - Generate Webhook secret via Ruby with `ruby -rsecurerandom -e 'puts SecureRandom.hex(32)'` or [online](https://www.browserling.com/tools/random-string)
 
 
-**3.b Using helm to deploy Atlantis on kubernetes cluster:**
+**4.b Using helm to deploy Atlantis on kubernetes cluster:**
 
 1- Atlantis has an [official Helm chart](https://hub.kubeapps.com/charts/stable/atlantis).
 
@@ -139,7 +142,7 @@ kubectl --namespace kube-system get pods | grep tiller
 3- Add the following values in helm/values.yaml:
 
 ```yaml
-#  add Atlassian public domain for :
+#  add atlantis public domain for :
 atlantisUrl: http://atlantis.example.com 
 
 # Add your terraform repository:
@@ -162,7 +165,7 @@ aws:
               region = <region>
    config: |
      [profile a_role_to_assume]
-     role_arn = arn:aws:iam::451098466741:role/Allows_EKS_access
+     role_arn = arn:aws:iam::<account_ID>:role/Allows_EKS_access
      source_profile = default
 #defaultTFVersion set the default terraform version to be used in atlantis server
 ## it should be the same as your terraform version to overcome any terraform lock status
@@ -182,7 +185,7 @@ defaultTFVersion: 0.12.26
   
   RUN `kubectl get svc` to list all service and get atlantis `nodePort`.
   
-**3.c Configuring Webhooks** Official documentation [here](https://www.runatlantis.io/docs/configuring-webhooks.html#github-github-enterprise)
+**4.c Configuring Webhooks** Official documentation [here](https://www.runatlantis.io/docs/configuring-webhooks.html#github-github-enterprise)
 - navigate to the repository home page and click `Settings`. 
 - Select `Webhooks` or Hooks in the sidebar and click `Add webhook`
 - Set Payload URL to http://$URL/events (or https://$URL/events if you're using SSL) where $URL is where Atlantis is hosted.
@@ -199,10 +202,10 @@ defaultTFVersion: 0.12.26
 - leave Active checked
 - Click Add webhook
 
-## Get Started [here](https://www.runatlantis.io/guide/#getting-started)
+## Step-5 Get Started [here](https://www.runatlantis.io/guide/#getting-started)
 
-## add changes in any branch and open a PUll request then add a comment:
-`atlantis plan -d .` and Atlantis will comment back the planned output of the terraform code changed 
+- add changes in any branch and open a PUll request then the atlantis will plan the terraform code automatically.
+- want to plan again? `atlantis plan -d .` and atlantis will comment back the plan output of the terraform code changed 
 
 After approving the plan RUN `atlantis apply -d . ` to apply changes then you Merge the code 
 ![Github PR](/images/atlantis_Github_screenshoot.png)

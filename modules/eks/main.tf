@@ -79,6 +79,11 @@ resource "aws_eks_node_group" "node" {
   node_group_name = "node"
   node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = var.SUBNET_IDS
+  instance_types  = [var.INSTANCE_TYPE]
+  
+  remote_access {
+  ec2_ssh_key = var.WORKER_KEY
+}
 
   scaling_config {
     desired_size = 1
