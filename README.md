@@ -1,4 +1,4 @@
-# Luminor assessment overview
+# Overview
 
 This is a technical guide to provision EKS cluster in AWS using terraform and deploy atlantis application to bring the benefits of code review to your operations workflow, catch errors in the Terraform plan output before it's applied and ensure that you apply changes before merging to master. via pull requests.
 
@@ -147,7 +147,7 @@ atlantisUrl: http://atlantis.example.com
 
 # Add your terraform repository:
 ##in my case I'm using the same repository
-orgWhitelist: github.com/ahmedbadawy4/Luminor-task 
+orgWhitelist: github.com/ahmedbadawy4/atlantis-eks 
 
 # If using GitHub, specify like the following: 
 github:
