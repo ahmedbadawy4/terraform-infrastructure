@@ -1,46 +1,80 @@
-variable "VPC_CIDR" {
-  #default     = "10.0.0.0/16"
-  description = "CIDR for vpc"
+#################
+# Common variables
+variable "environment" {
+  description = "the environment name"
+  type        = string
 }
 
-variable "SUBNET_1_CIDR" {
-  #default   = "10.0.1.0/24"
-  description = "subnet for the first Availability Zone"
+variable "team" {
+  description = "the team name"
+  type        = string
+  default     = "SRE"
 }
 
-variable "SUBNET_2_CIDR" {
-  #default = "10.0.2.0/24"
-  description = "subnet for the second Availability Zone"
+variable "business_unit" {
+  description = "the business unit name"
+  type        = string
+  default     = "SRE"
 }
 
-variable "AZ_1" {
-  #default = "us-east-1a"
-  description = "first Availability Zone"
+##################
+# EKS variables
+variable "aws_region" {
+  description = "the AWS region"
+  type        = string
+  default     = "eu-west-1"
 }
 
-variable "AZ_2" {
-  #default = "us-east-1b"
-  description = "second Availability Zone"
-}
-variable "NAME" {
-  #default = "eks-cluster"
-  description = "Cluster name"
+variable "cluster_name" {
+  description = "the new cluster name"
+  type        = string
+  default     = "eks-cluster"
 }
 
-variable "max_size" {
-  #  default = "2"
-  description = "max_size"
+variable "cluster_version" {
+  description = "the new cluster version"
+  type        = string
+  default     = "1.30"
 }
 
-variable "min_size" {
-  #  default = "1"
-  description = "min_size"
+variable "aws_tags" {
+  description = "the AWS tags to apply to all resources"
+  type        = map(any)
+  default     = {}
 }
 
-variable "INSTANCE_TYPE" {
-  description = "instance type and size"
+variable "eks_managed_node_groups" {
+  description = "the managed node groups configs"
+  type = map(object({
+    ami_type       = string
+    instance_types = list(string)
+    min_size       = number
+    max_size       = number
+    desired_size   = number
+  }))
+  default = {}
 }
 
-variable "WORKER_KEY" {
-  description = "instance type and size"
+variable "admin_principal_arn" {
+  description = "the ARN of the admin role"
+  type        = string
+}
+
+variable "developer_principal_arn" {
+  description = "the ARN of the developer role"
+  type        = string
+}
+
+variable "developer_access_scope" {
+  description = "the access scope for the developer"
+  type        = list(string)
+  default     = ["development", "staging"]
+
+}
+
+variable "admin_access_scope" {
+  description = "the access scope for the admin"
+  type        = list(string)
+  default     = ["default", "development", "staging", "production"]
+
 }

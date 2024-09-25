@@ -1,0 +1,64 @@
+name: terraform CI/CD Pipeline
+# this will be the name of the run in the Actions tab ex: deploy-eks-on-dev-from-branch-main
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('#deploy-eks-on-{0}-from-branch-{3}', inputs.target_env, github.ref_name) || '' }} 
+on:
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: 'target environment'
+        type: choice
+        options:
+          - dev
+          - prod
+        required: true
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.6
+
+      - name: Initialize Terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan --var-file=tfvars/${{inputs.target_env}}.tfvars -out=tfplan -no-color
+          terraform show -no-color tfplan > plan.txt
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat plan.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        shell: bash
+      - name: Save Terraform plan as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ./tfplan
+
+  terraform-apply:
+      name: Terraform Apply
+      runs-on: [self-hosted, linux, X64, "some_self_hosted_tag" ] # use self-hosted runners with existing AWS credentials.
+      needs: terraform-plan  # runs only after the 'plan' job succeeds
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Download Terraform plan artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: tfplan
+
+        - name: Initialize Terraform
+          run: terraform init
+
+        - name: Apply Terraform Plan
+          run: terraform apply --var-file=tfvars/${{inputs.target_env}}.tfvars -auto-approve tfplan

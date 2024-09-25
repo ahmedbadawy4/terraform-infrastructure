@@ -1,21 +1,14 @@
-output "main_subnet1_id" {
-  value       = ["${aws_subnet.subnet_1.id}"]
-  description = "eks subnet 1 id"
+output "vpc_id" {
+  description = "The ID of the VPC"
+  value       = module.vpc.vpc_id
 }
 
-output "sg_worker_id" {
-  value = "${aws_security_group.worker-node.id}"
+output "private_subnets" {
+  description = "The private subnets"
+  value       = module.vpc.private_subnets
 }
 
-output "default_subnet_group_id" {
-  value = "${aws_db_subnet_group.eks.id}"
-}
-output "subnet2_id" {
-  value       = "${aws_subnet.subnet_2.id}"
-  description = "eks subnet 2 id"
-}
-
-output "SUBNET_IDS" {
-  value       = ["${aws_subnet.subnet_1.id}", "${aws_subnet.subnet_2.id}"]
-  description = "eks subnet  ids"
+output "public_subnets" {
+  description = "The public subnets"
+  value       = module.vpc.public_subnets
 }

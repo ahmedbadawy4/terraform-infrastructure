@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.86.0 # Get the latest from: https://github.com/antonbabenko/pre-commit-terraform/releases
+    hooks:
+    - id: terraform_fmt
+    - id: terraform_validate
+    - id: terraform_tflint
+      args:
+      - '--args=--enable-rule=terraform_unused_declarations'
+    - id: terraform_docs
+      args:
+      - '--args=--html=true --anchor=true'
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: check-yaml
+#        exclude: ./path/to/yaml
+      - id: check-merge-conflict
+      - id: detect-aws-credentials
+        args:
+          - '--allow-missing-credentials'
+      - id: detect-private-key
+      - id: check-case-conflict

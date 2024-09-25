@@ -1,101 +1,51 @@
-resource "aws_iam_role" "eks_cluster" {
-  name = "eks-cluster"
+provider "aws" {
+  region = var.aws_region
+}
 
-  assume_role_policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "eks.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
+terraform {
+  required_version = "~> 1.3"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
     }
-  ]
-}
-POLICY
-}
-
-resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-  role       = aws_iam_role.eks_cluster.name
-}
-
-resource "aws_iam_role_policy_attachment" "AmazonEKSServicePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSServicePolicy"
-  role       = aws_iam_role.eks_cluster.name
-}
-
-resource "aws_eks_cluster" "aws_eks" {
-  name     = var.NAME
-  role_arn = aws_iam_role.eks_cluster.arn
-
-  vpc_config {
-    subnet_ids = var.SUBNET_IDS
-  }
-
-  tags = {
-    Name = "EKS"
   }
 }
 
-resource "aws_iam_role" "eks_nodes" {
-  name = "eks-node-group"
+module "eks" {
+  source              = "terraform-aws-modules/eks/aws"
+  version             = "~> 20.0"
+  cluster_name        = local.cluster_name
+  cluster_version     = var.cluster_version
+  authentication_mode = var.authentication_mode
 
-  assume_role_policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-POLICY
-}
+  # Cluster endpoint public access
+  cluster_endpoint_public_access = var.cluster_endpoint_public_access
 
-resource "aws_iam_role_policy_attachment" "AmazonEKSWorkerNodePolicy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-  role       = aws_iam_role.eks_nodes.name
-}
+  # Cluster_addons
+  cluster_addons = var.cluster_addons
 
-resource "aws_iam_role_policy_attachment" "AmazonEKS_CNI_Policy" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-  role       = aws_iam_role.eks_nodes.name
-}
+  # VPC configuration
+  vpc_id                   = var.vpc_id
+  subnet_ids               = var.subnet_ids
+  control_plane_subnet_ids = var.control_plane_subnet_ids
 
-resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_nodes.name
-}
-
-resource "aws_eks_node_group" "node" {
-  cluster_name    = aws_eks_cluster.aws_eks.name
-  node_group_name = "node"
-  node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = var.SUBNET_IDS
-  instance_types  = [var.INSTANCE_TYPE]
-  
-  remote_access {
-  ec2_ssh_key = var.WORKER_KEY
-}
-
-  scaling_config {
-    desired_size = 1
-    max_size     = 2
-    min_size     = 1
+  # EKS Managed Node Group(s)
+  eks_managed_node_group_defaults = {
+    instance_types = var.instance_types
   }
+  # Managed Node Group(s)
+  eks_managed_node_groups = var.create_eks_managed_node_groups ? local.eks_managed_node_groups : {}
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
-  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
-  depends_on = [
-    aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
-  ]
+  # Security groups
+  cluster_security_group_name                  = local.cluster_security_group_name
+  node_security_group_name                     = local.node_security_group_name
+  node_security_group_additional_rules         = local.node_security_group_additional_rules
+  node_security_group_enable_recommended_rules = var.node_security_group_enable_recommended_rules
+
+  # Cluster creator access
+  enable_cluster_creator_admin_permissions = var.enable_cluster_creator_admin_permissions
+
+  # Access entries for teams
+  access_entries = var.create_access_entries ? local.cluster_access_entries : {}
 }

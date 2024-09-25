@@ -1,18 +1,27 @@
-variable "VPC_CIDR" {
-  description = "CIDR for vpc"
-}
-variable "SUBNET_1_CIDR" {
-  description = "subnet for the first Availability Zone"
+variable "environment" {
+  description = "the environment name"
+  type        = string
 }
 
-variable "SUBNET_2_CIDR" {
-  description = "subnet for the second Availability Zone"
+variable "aws_region" {
+  description = "the AWS region"
+  type        = string
 }
 
-variable "AZ_1" {
-  description = "first Availability Zone"
+variable "vpc_cidr" {
+  description = "The CIDR block for the VPC"
+  type        = string
+  default     = "10.0.0.0/16"
 }
 
-variable "AZ_2" {
-  description = "second Availability Zone"
+variable "private_subnets" {
+  description = "A list of private subnets inside the VPC"
+  type        = list(string)
+  default     = ["10.0.1.0/24", "10.0.2.0/24"]
+}
+
+variable "public_subnets" {
+  description = "A list of public subnets inside the VPC"
+  type        = list(string)
+  default     = ["10.0.101.0/24", "10.0.102.0/24"]
 }
