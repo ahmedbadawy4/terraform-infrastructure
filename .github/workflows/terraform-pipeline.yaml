@@ -11,6 +11,10 @@ on:
           - dev
           - prod
         required: true
+        
+permissions: read-all
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.inputs.target_env }} # concurrency group to prevent multiple runs of the same workflow
 
 jobs:
   terraform-plan:
@@ -48,6 +52,7 @@ jobs:
       name: Terraform Apply
       runs-on: [self-hosted, linux, X64, "some_self_hosted_tag" ] # use self-hosted runners with existing AWS credentials.
       needs: terraform-plan  # runs only after the 'plan' job succeeds
+      if: github.ref == 'refs/heads/main' # only run on main branch
       steps:
         - name: Checkout code
           uses: actions/checkout@v4

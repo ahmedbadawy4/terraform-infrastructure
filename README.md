@@ -1,222 +1,235 @@
 # Overview
 
-This is a technical guide to provision EKS cluster in AWS using terraform and deploy atlantis application to bring the benefits of code review to your operations workflow, catch errors in the Terraform plan output before it's applied and ensure that you apply changes before merging to master. via pull requests.
+This repository provides a Terraform configuration for provisioning an Amazon Elastic Kubernetes Service (EKS) cluster on AWS.
 
-## 📝 Table of Contents:
-
-- [Prerequisites](#Prerequisites)
-- [Step-1 Setup AWS credentials](#new_environment)
-- [Step-2 Terraform](#Install_Terraform)
-- [Step-3 Connect to EKS cluster]()
-- [Step-4 Setup Atlantis]()
-- [Step-5 Get Started]()
-- [Provision EKS](#provesion_EKS)
-- [Deploy Atlantis](#Deploy_Atlantis)
-
+## Repository Structure
+  - `.github/workflow/pre-commit.yml`: A Gihub action pipeline that runs when opening/updating a PullRequest to ensure the terraform formatting, linting, validation, etc are valid.
+  - `.github/workflow/terraform-pipeline.yaml`: Another Github action pipeline that makes it easy to deploy the terraform. 
+  - `modules`: Contains `eks`, and `vpc` modules.
+  - `tfvars/dev.tfvars` and `tfvars/prod.tfvars`: Override default variables and contain the spicific environment values for each variable.
+  - `pre-commit-config.yaml`: Contains the pre-commit configs and hooks.
+  - `config.tf`: Contains the required Terraform provider configuration, AWS Region, and Terraform state backend configurations.
+  - `main.tf`: Main Terraform configuration for setting up the EKS cluster.
+  - `outputs.tf`: Outputs of the Terraform configuration (such as the cluster endpoint, cluster certificat_authority, etc.).
+  - `variables.tf`: Contains the input variables for the Terraform configuration.
 
 ## Prerequisites
-- AWS account [Signup/Login](https://console.aws.amazon.com/console/home?nc2=h_ct&src=header-signin)
+Before deploying the EKS cluster, ensure you have the following tools installed and configured on your local machine:
 
+- [Terraform](https://www.terraform.io/downloads.html) (v1.5.0 or higher)
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) (configured with credentials)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) (for managing the Kubernetes cluster)
+- [Helm](https://helm.sh/docs/intro/install/) (optional, for deploying applications on the cluster)
+- Setup an S3 bucket as a terraform state backend in `config.tf`:
 
-## Step-1 Setup AWS credentials (Linux OS):
+  ```
+  terraform {
+    backend "s3" {
+      bucket = "<bucket_name>"
+      key    = "<some_key_path>/terraform.tfstate"
+      region = "<region>"
+    }
+  .....
+  }
+  ```
 
-1- Create a new user in the IAM Section on AWS [here](https://console.aws.amazon.com/iam/home?region=us-east-1#/users) and select "*Programmatic access*".
+### AWS IAM Permissions
 
-2- Either Attached the AdministratorAccess policy or add the new user to the admin group or add specific policies one by one.  
+You need appropriate AWS IAM permissions to create resources such as:
 
-3- Download the credentials.csv file which contains the new user credentials.
+- EKS cluster
+- VPC, subnets, and security groups
+- IAM roles and policies
+- EC2 instances for worker nodes
+  
+  *Ensure your AWS credentials are properly set up either via the AWS CLI (`aws configure`) or via environment variables.*
 
-4- Add AWS credentials in your local machine:
+## How to Deploy 
+### A. Using the GitHub action pipeline
+*This way is more efficient to run the terraform and ensure the configuration is correct every time we are deploying without any human factor error.*
+concurrency group to prevent multiple runs of the same workflow
+#### Workflow Overview
 
-   - Setup AWS credential for Windows or Mac from [here](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/setup-credentials.html).   
+The Terraform CI/CD pipeline consists of two main jobs:
+1. **Terraform Plan**: This job initializes Terraform, generates a plan, and saves it as an artifact.
+2. **Terraform Apply**: This job applies the Terraform plan generated in the previous job.
+*it also contains these configurations to ensure quality:*
+3. the pipeline has a limited choice to ensure no typo mistakes in the input environment name.
+4. the `terraform apply job will run only from the `main` branch assuming it is protected and has the latest valid code`
 
-  - Setup AWS credential for Linux:  ```mkdir -p ~/.aws/ && touch ~/.aws/credentials``` with the below syntax and add the **Access key ID** and **Secret access key**.
+### Workflow Trigger
+
+The workflow is triggered using the `workflow_dispatch` event, allowing manual execution with the option to specify the target environment (either `dev` or `prod`).
+
+#### Steps:
+
+1. Click on the **Run workflow** button.
+2. Select the desired **target environment** from the dropdown options (`dev` or `prod`).
+3. Click the **Run workflow** button to start the execution.
+
+### B. using local machine.
+
+#### 1. Clone the Repository
+
+First, clone this repository to your local machine:
+
 ```bash
-[default]
-region = us-east-1
-aws_access_key_id = AKI******************NU
-aws_secret_access_key = FC*******************q27v
+git clone https://github.com/ahmedbadawy4/terraform-eks.git
+cd terraform-eks
+```
+
+#### 2. Configure Variables
+Each environment variable can be customized by modifying the variables in the `tfvars/<environment>.tfvars` file
 
 ```
-## Step-2 Terraform:
-
-### 2.a Install:
-
-- Download Terraform `>= 0.12` [here](https://releases.hashicorp.com/terraform/) and follow the guide [here](https://www.terraform.io/intro/getting-started/install.html) on how to install Terraform on your specific system.
-- Check terraform installation Run: `terraform version`
-
-### 2.b initial configurations:
-
-- Setup S3 bucket as a backend to terraform.tfstate file:
-*DON'T* make sure that the S3 bucket is not public!
-*Setup S3 permission:*        Navigate to Permission > Bucker Policy  and add the below policy:
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::<Account_ID>:user/<your_AWS_User_name>"
-            },
-            "Action": "s3:ListBucket",
-            "Resource": "arn:aws:s3:::<BUCKET_NAME>"
-        },
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:I am::<Account_ID>:user/<your_AWS_User_name>"
-            },
-            "Action": [
-                "s3:GetObject",
-                "s3:PutObject"
-            ],
-            "Resource": "arn:aws:s3:::<BUCKET_NAME>/*"
-        }
-    ]
-}
-```
-- Add `S3 bucket name` and `path to terraform.tfstate` in `backend.tf` file:
-
-```
-terraform {
-  backend "s3" {
-    bucket = "<Bucket_NAME>"
-    key    = "PATH/TO/terraform.tfstate"
-    region = "<BUCKEt_REGION>"
+environment             = <envieronment_name>
+developer_principal_arn = "<developers SSO iam role arn>"
+admin_principal_arn     = "<admin SSO iam role arn>"
+eks_managed_node_groups = {
+  default = {
+    ami_type       = "node_group_ami_type_of" #better to build your ami template that is customized properly
+    instance_types = ["<instance_type>"]
+    min_size       = <Min number of instances>
+    max_size       = <Max number of instances>
+    desired_size   = <Desire number of instances>
   }
 }
 ```
-
-- Edit values based on your project in `terraform.vars` file-based on your project.
-
-- RUN `terraform init` **to download and initialize the appropriate provider plugins.**
-- RUN `terraform plan` **to see what Terraform will do before we decide to apply it.**
-- RUN `terraform apply -var-file terraform.tfvars` **This command will provision the eks cluster.**
-- **Wait** till the end of provisioning, you will get a completion message and outputs for Example:
-
- ```
-Apply complete! Resources: 16 added, 0 changed, 0 destroyed.
-Outputs:
-
-eks_cluster_certificat_authority = [
-  {
-    "data" = "LS0tLS********1CR********UdJTiBDRV*************VSVE********lGSUNB********VEUtLS0tLQo="
-  },
-]
-eks_cluster_endpoint = https://99*****2F6**0**6A8.gr7.us-east-1.eks.amazonaws.com
-  ```
-## Step-3 Connect to EKS cluster
-- Install `kubectl` in local machine based on your OS [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
-
-- RUN `export KUBECONFIG=~/.kube/config` **to set the kubernetes configuration in PATH.**
-- RUN `aws eks update-kubeconfig --region "region" --name "CLUSTER-NAME"`**this command will generate a config file under ~/.kube directory with all configuration required.**
-- RUN `kubectl cluster-info`
-     *to get cluster details and check your configuration.*
-
-
-## Step-4 Setup Atlantis: [official documentations](https://www.runatlantis.io/docs/)
-
-### 4.a prerequisites:
-  - get terraform version `terraform --version`
-  -  install and configure helm:
-```bash
-curl https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get > /tmp/get_helm.sh
-chmod 700 /tmp/get_helm.sh
-./tmp/get_helm.sh
-kubectl apply -f helm/rbac.yaml
-helm init --service-account tiller
-kubectl --namespace kube-system get pods | grep tiller
+#### 3. Initialize Terraform
+Run the following command to initialize Terraform, which will download the necessary modules and provider plugins:
 
 ```
-- Create a Personal Access [Token](https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/#creating-a-token) with **repo** scope.
-- Generate Webhook secret via Ruby with `ruby -rsecurerandom -e 'puts SecureRandom.hex(32)'` or [online](https://www.browserling.com/tools/random-string)
+terraform init
+```
+
+#### 4. Create an Execution Plan
+The execution plan shows you what Terraform will do when you apply it. You can create the plan by running:
+
+```
+terraform plan --var-file=tfvars/<envieronment_name>.tfvars -out=tfplan -no-color
+```
+This will generate a plan file tfplan, which you can inspect or save for later use.
+
+#### 5. Apply the Plan
+To deploy the EKS cluster and all associated resources, apply the generated plan:
+
+```
+terraform apply --var-file=tfvars/<envieronment_name>.tfvars tfplan
+```
+This command will provision the resources in your AWS account.
+
+#### 6. Configure `kubectl` to Access the EKS Cluster
+Once the cluster is successfully created, you can use the AWS CLI to update your kubectl configuration to interact with the new EKS cluster:
+
+```
+aws eks --region <region> update-kubeconfig --name <cluster_name>
+```
+This command configures kubectl to use the EKS cluster you just deployed.
+
+#### 7. Verify the Cluster (Optional)
+Use kubectl to verify that the cluster is running and accessible:
+
+```
+kubectl get nodes
+```
+This should display a list of worker nodes if everything was set up correctly.
+
+## How to Destroying the Cluster (all the deployed infra)
+If you need to delete all resources created by Terraform, run the following command:
+
+```
+terraform destroy --var-file=tfvars/dev.tfvars
+```
+This will tear down all infrastructure provisioned by this configuration.
+
+## Troubleshooting
+
+If you encounter issues during deployment:
+
+1. Ensure your AWS credentials are configured and have sufficient permissions.
+2. Ensure the S3 bucket that works as a backend is configured correctly and the local machine has access to it.
+3. Check that your AWS region, VPC, and subnets are correct.
+4. Look at the Terraform state and plan output for details on errors.
+5. Re-run terraform in debug mood to get more details example `TF_LOG=DEBUG TF_LOG_PATH=terraform_debug.log terraform apply`
+6. Ensure the `kubectl` configuration is correctly pointing to the EKS cluster.
 
 
-**4.b Using helm to deploy Atlantis on kubernetes cluster:**
+## (Advanced) steps to use Atlantis
+Atlantis is used to automate Terraform workflows via GitHub pull requests (PRs). It listens for changes in the Terraform configuration and automatically runs `terraform plan` and `terraform apply` within PRs based on certain commands.
 
-1- Atlantis has an [official Helm chart](https://hub.kubeapps.com/charts/stable/atlantis).
+### Prerequisites
 
-2- Generate a `values.yaml` file by running: `helm inspect values stable/atlantis > helm/values.yaml`
+Before using Atlantis, ensure the following are set up:
 
-3- Add the following values in helm/values.yaml:
+- Atlantis is deployed and running (usually in a container or Kubernetes).
+- Atlantis has access to your GitHub repository via a webhook and appropriate access permissions.
+- Your Terraform codebase is compatible with Atlantis.
 
-```yaml
-#  add atlantis public domain for :
-atlantisUrl: http://atlantis.example.com 
+### Steps to Use Atlantis
 
-# Add your terraform repository:
-##in my case I'm using the same repository
-orgWhitelist: github.com/ahmedbadawy4/atlantis-eks 
+1. **Install and Deploy Atlantis**
 
-# If using GitHub, specify like the following: 
-github:
-  user: <GitHub_Username>
-  token: <Github_token>
-  secret: <Webhook_secret>
+   Atlantis can be deployed in multiple ways, such as on **Kubernetes**, **Docker**, or directly on a virtual machine. If you haven’t already set up Atlantis, follow the installation instructions in the [official Atlantis documentation](https://www.runatlantis.io/docs/install.html).
 
-#Specify AWS credentials to be mapped to ~/.aws inside the atlantis container
-# to allow atlantis container access AWS:
-aws:
-   credentials: |
-              [default]
-              aws_access_key_id = B4**********NU
-              aws_secret_access_key = /tY6*********************oq27v
-              region = <region>
-   config: |
-     [profile a_role_to_assume]
-     role_arn = arn:aws:iam::<account_ID>:role/Allows_EKS_access
-     source_profile = default
-#defaultTFVersion set the default terraform version to be used in atlantis server
-## it should be the same as your terraform version to overcome any terraform lock status
-defaultTFVersion: 0.12.26
+2. **Configure Atlantis in Your Repository**
 
-``` 
-> More cusumization value in the official documentation [here](https://github.com/helm/charts/tree/master/stable/atlantis#customization)
+   Ensure your repository has a valid `atlantis.yaml` file to define your Atlantis configuration. Here's an example configuration file:
+
+   ```yaml
+   version: 3
+   projects:
+     - name: my-eks-cluster
+       dir: .
+       workflow: default
+       autoplan:
+         when_modified: ["*.tf", "*.tfvars"]
+         enabled: true
+    ```
+  `dir`: Specifies the directory where your Terraform files are located (in this case, the root directory).
+  `autoplan`: Automatically runs terraform plan when a .tf or .tfvars file is modified.
+
+3. **Set Up the GitHub Webhook**
+
+To automate the Terraform runs, you need to create a webhook in your GitHub repository that points to your Atlantis server. Follow these steps:
+
+  - Navigate to your repository on GitHub.
+  - Go to Settings > Webhooks > Add webhook.
+  - Set the payload URL to point to your Atlantis server, e.g., http://<your-atlantis-url>/events.
+  - Set the content type to application/json.
+  - Choose "Let me select individual events" and select Pull Requests and Push events.
+  - Save the webhook.
+
+4. **Using Atlantis in Pull Requests**
+Once Atlantis is set up and connected, the following steps describe how to use it:
+
+  - Open a Pull Request (PR): When a pull request that modifies .tf files is created, Atlantis will automatically run the terraform plan and post the result in the PR.
+
+  - Running Terraform Plan: When a pull request is opened, Atlantis runs the Terraform plan automatically and posts the plan result as a comment on the PR. You can also manually trigger a plan by commenting on the PR:
+
+```
+atlantis plan
+```
+  - Running Terraform Apply: After reviewing the plan, you can trigger Terraform Apply by commenting on the pull request:
+
+```
+atlantis apply
+```
+  - Auto-Plan and Auto-Apply: If autoplan is enabled in your `atlantis.yaml` configuration, Atlantis will automatically run the plan when changes are detected. The apply step still requires approval via a comment.
+
+5. **Merge the Pull Request**
+Once the Terraform plan is successfully applied and everything looks good, the pull request can be merged. Atlantis ensures that your infrastructure changes are deployed only after the `atlantis apply` command is approved and successfully executed.
 
 
-4- deploy Atlantis using helm:
+#### Atlantis Commands in Pull Requests
+Here are some useful Atlantis commands you can run directly within PR comments:
 
-- create atlantis namespace `kubectl create ns atlantis`
+  - `atlantis plan`: Runs `terraform plan` and posts the output in the PR.
+  - `atlantis apply`: Runs `terraform apply` and applies the Terraform changes.
+  - `atlantis unlock`: Unlocks a PR that is locked by an incomplete plan or apply.
+  - `atlantis help`: Provides a list of available commands.
 
-- Run helm `helm install -f helm/values.yaml --name atlantis stable/atlantis --namespace atlantis`
-
-- ***NOT RECOMMENDED*** In my case i'll use nodePort to access the atlantis:
-  
-  RUN `kubectl get svc` to list all service and get atlantis `nodePort`.
-  
-**4.c Configuring Webhooks** Official documentation [here](https://www.runatlantis.io/docs/configuring-webhooks.html#github-github-enterprise)
-- navigate to the repository home page and click `Settings`. 
-- Select `Webhooks` or Hooks in the sidebar and click `Add webhook`
-- Set Payload URL to http://$URL/events (or https://$URL/events if you're using SSL) where $URL is where Atlantis is hosted.
-  > in my case `$URL = http://ec2_public_IP:nodePort` 
-- set Content-type to application/json
-- set Secret to the Webhook Secret you generated previously
-  > NOTE If you're adding a webhook to multiple repositories, each repository will need to use the same secret.
-- select Let me select individual events
-- check the boxes:
-  - Pull request reviews
-  - Pushes
-  - Issue comments
-  - Pull requests
-- leave Active checked
-- Click Add webhook
-
-## Step-5 Get Started [here](https://www.runatlantis.io/guide/#getting-started)
-
-- add changes in any branch and open a PUll request then the atlantis will plan the terraform code automatically.
-- want to plan again? `atlantis plan -d .` and atlantis will comment back the plan output of the terraform code changed 
-
-After approving the plan RUN `atlantis apply -d . ` to apply changes then you Merge the code 
-![Github PR](/images/atlantis_Github_screenshoot.png)
-
-- visit Atlantis URL `http://ec2_ip:nodePort` you will get the lock of this PR:
-![Atlantis interface](/images/atlantis_lock_screenshoot.png)
-## To-Do-List:
-1- setup an Atlantis domain with SSL and configure it to overcome disconnection in case nodePort changed for any reason.
-
-2- Use the official terraform EKS module to get more variety and more customization.
-
-3- Configured Multiple IAM roles with different levels of permissions (depend on each team's requirements).
-
-4- protect aster branch "Protected branches are available to Pro, Team, and Enterprise users"
+## To-do list
+- Create a custom AMI image that is customized and configured with the necessary configurations.
+- Create Self hosted runner to be used in the GitHub actions
+- we could use an opsnSSL command to encrypt the tfplan to ensure the security of the plan file when has been uploaded as an artifact to Github.
+- Create another repository that uses terragrunt to deploy the eks, vpc modules, and other resources.

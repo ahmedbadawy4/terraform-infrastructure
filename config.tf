@@ -15,9 +15,9 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "terraform-state-801627643938"
-    key    = "luminor-eks/terraform.tfstate"
-    region = "eu-west-1"
+    bucket = "<bucket_name>"
+    key    = "<some_key_path>/terraform.tfstate"
+    region = "<region>"
   }
   required_version = "~> 1.4"
   required_providers {
