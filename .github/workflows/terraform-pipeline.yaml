@@ -53,6 +53,7 @@ jobs:
       runs-on: [self-hosted, linux, X64, "some_self_hosted_tag" ] # use self-hosted runners with existing AWS credentials.
       needs: terraform-plan  # runs only after the 'plan' job succeeds
       if: github.ref == 'refs/heads/main' # only run on main branch
+      environment: ${{inputs.target_env}}
       steps:
         - name: Checkout code
           uses: actions/checkout@v4

@@ -23,4 +23,21 @@ override.tf.json
 # !example_override.tf
 # Include tfplan files to ignore the plan output of command: terraform plan -out=tfplan
 # example: *tfplan*
-*.hcl
+*.terraform.lock.hcl
+.*.sw?
+.idea
+terragrunt.iml
+vendor
+.terraform
+.vscode
+*.tfstate
+*.tfstate.backup
+*.out
+.terragrunt-cache
+.bundle
+.ruby-version
+.terraform.lock.hcl
+terragrunt
+.DS_Store
+mocks/
+.go-version

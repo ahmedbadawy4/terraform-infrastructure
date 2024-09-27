@@ -1,4 +1,8 @@
 repos:
+  - repo: https://github.com/gruntwork-io/pre-commit
+    rev: v0.1.17
+    hooks:
+      - id: terragrunt-hclfmt
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.86.0 # Get the latest from: https://github.com/antonbabenko/pre-commit-terraform/releases
     hooks:
@@ -16,7 +20,6 @@ repos:
       - id: check-merge-conflict
       - id: end-of-file-fixer
       - id: check-yaml
-#        exclude: ./path/to/yaml
       - id: check-merge-conflict
       - id: detect-aws-credentials
         args:

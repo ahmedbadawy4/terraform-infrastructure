@@ -54,8 +54,10 @@ The Terraform CI/CD pipeline consists of two main jobs:
 1. **Terraform Plan**: This job initializes Terraform, generates a plan, and saves it as an artifact.
 2. **Terraform Apply**: This job applies the Terraform plan generated in the previous job.
 *it also contains these configurations to ensure quality:*
-3. the pipeline has a limited choice to ensure no typo mistakes in the input environment name.
-4. the `terraform apply job will run only from the `main` branch assuming it is protected and has the latest valid code`
+3. The pipeline has a limited choice to ensure no typo mistakes in the input environment name.
+4. `github Action Sammery will show the terraform changes that detected.
+5. `terraform apply` job will run only from the `main` branch assuming it is protected and has the latest valid code`
+6. `prod` envoronment ` is created in the Github action environment that need approval before execution to ensure the deployment is approved by authorized person.
 
 ### Workflow Trigger
 
@@ -232,4 +234,4 @@ Here are some useful Atlantis commands you can run directly within PR comments:
 - Create a custom AMI image that is customized and configured with the necessary configurations.
 - Create Self hosted runner to be used in the GitHub actions
 - we could use an opsnSSL command to encrypt the tfplan to ensure the security of the plan file when has been uploaded as an artifact to Github.
-- Create another repository that uses terragrunt to deploy the eks, vpc modules, and other resources.
+- Modules can be moved to another repository to be able to create a github tags and be safe to use it as a source in the teraform to ensure the reliability and ignore any random/unplanned code changes.
