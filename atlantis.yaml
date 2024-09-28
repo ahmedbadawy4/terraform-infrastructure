@@ -1,8 +1,8 @@
 version: 3
 projects:
-- dir: live/staging
+- dir: aws/dev/eks
   workflow: terragrunt
-- dir: live/prod
+- dir: aws/dev/vpc
   workflow: terragrunt
 workflows:
   terragrunt:
