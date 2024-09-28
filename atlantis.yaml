@@ -12,7 +12,6 @@ workflows:
           name: TERRAGRUNT_TFPATH
           command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
       - env:
-          # Reduce Terraform suggestion output
           name: TF_IN_AUTOMATION
           value: 'true'
       - run:
@@ -23,7 +22,6 @@ workflows:
           name: TERRAGRUNT_TFPATH
           command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
       - env:
-          # Reduce Terraform suggestion output
           name: TF_IN_AUTOMATION
           value: 'true'
       - run:
