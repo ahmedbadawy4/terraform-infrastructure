@@ -1,9 +1,9 @@
 terraform {
-  source = "${get_repo_root()}/modules/eks"
+  source = "../../../modules/eks"
 }
 
 dependency "vpc" {
-  config_path = "${get_path_to_repo_root()}//aws/dev/vpc"
+  config_path = "../vpc"
 }
 
 include {
