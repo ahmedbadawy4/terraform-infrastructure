@@ -1,11 +1,11 @@
 module "vpc" {
-  source      = "./modules/vpc"
+  source      = "./../../modules/vpc"
   aws_region  = var.aws_region
   environment = var.environment
 }
 
 module "eks" {
-  source                  = "./modules/eks"
+  source                  = "./../../modules/eks"
   aws_region              = var.aws_region
   environment             = var.environment
   cluster_name            = var.cluster_name

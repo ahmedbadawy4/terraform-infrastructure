@@ -1,0 +1,50 @@
+version: 3
+automerge: true
+autodiscover:
+  mode: auto
+delete_source_branch_on_merge: true
+parallel_plan: true
+parallel_apply: true
+abort_on_execution_order_fail: true
+projects:
+  - name: terraform-infrastructure
+    branch: /main/
+    dir: .
+    workspace: default
+    terraform_version: v1.3.0
+    delete_source_branch_on_merge: true
+    repo_locks:
+      mode: on_plan
+    custom_policy_check: false
+    autoplan:
+      when_modified: ["*.tf", "*.hcl", "../modules/**/*.tf", ".terraform.lock.hcl"]
+      enabled: true
+    plan_requirements: [mergeable, approved, undiverged]
+    apply_requirements: [mergeable, approved, undiverged]
+    import_requirements: [mergeable, approved, undiverged]
+    silence_pr_comments: ["apply"]
+    execution_order_group: 1
+    depends_on:
+      - project-1
+    workflow: terragrunt-workflow
+
+workflows:
+  terragrunt-workflow:
+    plan:
+      steps:
+        - init:
+            extra_args: ["-backend=false"]
+        - run:
+            command: terragrunt plan
+            extra_args: ["-lock", "false"]
+        - run: echo "Terragrunt plan completed"
+    apply:
+      steps:
+        - run: echo "Starting Terragrunt apply"
+        - run:
+            command: terragrunt apply
+        - apply
+
+allowed_regexp_prefixes:
+  - dev/
+  - staging/
