@@ -1,0 +1,15 @@
+automerge: false
+parallel_apply: true
+parallel_plan: true
+projects:
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+  dir: aws/dev/eks
+- autoplan:
+    enabled: true
+    when_modified:
+    - '*.hcl'
+  dir: aws/dev/vpc
+version: 3
