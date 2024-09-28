@@ -5,13 +5,3 @@ projects:
     autoplan:
       when_modified: ["*.hcl", "*.tf"]
       enabled: true
-workflows:
-  terragrunt:
-    plan:
-      steps:
-        - run: terragrunt init
-        - run: terragrunt plan -input=false -no-color -out $PLANFILE
-        - run: terragrunt show $PLANFILE
-    apply:
-      steps:
-        - run: terragrunt apply -input=false $PLANFILE
