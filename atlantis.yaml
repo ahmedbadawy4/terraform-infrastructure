@@ -8,21 +8,16 @@ workflows:
   terragrunt:
     plan:
       steps:
-      - env:
-          name: TERRAGRUNT_TFPATH
-          command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
-      - env:
-          name: TF_IN_AUTOMATION
-          value: 'true'
-      - run:
-          command: terragrunt plan -input=false -out=$PLANFILE
+        - env:
+            name: TERRAGRUNT_TFPATH
+            command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
+        - run: direnv-allow-all
+        - run: direnv exec . terragrunt plan -input=false -out=$PLANFILE
+        - run: direnv exec . terragrunt show -json $PLANFILE > $SHOWFILE
     apply:
       steps:
-      - env:
-          name: TERRAGRUNT_TFPATH
-          command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
-      - env:
-          name: TF_IN_AUTOMATION
-          value: 'true'
-      - run:
-          command: terragrunt apply $PLANFILE
+        - env:
+            name: TERRAGRUNT_TFPATH
+            command: 'echo "terraform${ATLANTIS_TERRAFORM_VERSION}"'
+        - run: direnv-allow-all
+        - run: direnv exec . terragrunt apply -input=false $PLANFILE
