@@ -7,7 +7,7 @@ provider "aws" {
         "ei:environment" = var.environment,
         "team"           = var.team,
         "business-unit"  = var.business_unit
-        "component-name" = var.cluster_name
+        "component-name" = "atlantis-server"
       }
     )
   }

@@ -3,6 +3,7 @@
 This repository provides a Terraform configuration for provisioning an Amazon Elastic Kubernetes Service (EKS) cluster on AWS.
 
 ## Repository Structure
+  - [Atlantis Server](./atlantis-server/): Atlantis server configurations to automate provision Ec2 instance using terraform and Configure the server using ansible.
   - [Gihub action pipeline](./.github/workflows/pre-commit.yaml) that runs when opening/updating a PullRequest to ensure the terraform formatting, linting, validation, etc are valid.
   - [Infra pipeline](./.github/workflow/infra-pipeline.yaml): Another Github action pipeline that makes it easy to directly trigger infrastructure deployment. 
   - [Terraform modules](modules): Contains `eks`, and `vpc` modules. *modules should be in a diffrent repo to handle the module versions using GitHub tags.*
@@ -17,6 +18,11 @@ Before deploying the EKS cluster, ensure you have the following tools installed 
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) (configured with credentials)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) (for managing the Kubernetes cluster)
 - [Helm](https://helm.sh/docs/intro/install/) (optional, for deploying applications on the cluster)
+
+- Setup Atlantis Server in two steps after complete the requirement inputs in the `atlantis-playbook.yaml` file:
+  - make atlantis-infra
+  - make atlantis-config
+
 - Setup an S3 bucket as a terraform state backend in [Terragrunt backend config](./aws/terragrunt.hcl):
 
   ```
@@ -145,7 +151,8 @@ If you encounter issues during deployment:
 - Create Self hosted runner to be used in the GitHub actions if needed.
 - Modules should be moved to another repository to be able to create GitHub tags and be safe to use as 
   a source in the terraform to ensure reliability and ignore any random/unplanned code changes.
-- Create a GitHub app to integrate with Atlantis (current setup used my account)
+- Create a GitHub app to integrate with Atlantis (current setup used my account).
 - SSO setup for Atlantis server, right now it is managed by basic authentication.
 - expand the functionality of `pre-commit` for better quality.
-- Atlantis repo config and server config need more adjustment based on the size of the infrastructure
+- Atlantis server should move to run on EKS to handle more amount of hook requests in parallel by set auto-scaling. 
+- Atlantis repo config and server config need more adjustment based on the size of the infrastructure.
