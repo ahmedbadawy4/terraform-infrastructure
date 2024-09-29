@@ -12,6 +12,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
+    - name: Install Terragrunt
+      run: |
+        TG_VERSION=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | jq -r .tag_name)
+        curl -L https://github.com/gruntwork-io/terragrunt/releases/download/$TG_VERSION/terragrunt_linux_amd64 -o /usr/local/bin/terragrunt
+        chmod +x /usr/local/bin/terragrunt
     - uses: terraform-linters/setup-tflint@v4
     - id: changed-files
       uses: tj-actions/changed-files@v45
