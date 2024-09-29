@@ -13,7 +13,15 @@ module "eks" {
   vpc_id                  = module.vpc.vpc_id
   authentication_mode     = "API_AND_CONFIG_MAP"
   subnet_ids              = module.vpc.private_subnets
-  eks_managed_node_groups = var.eks_managed_node_groups
+  eks_managed_node_groups = {
+  default = {
+    ami_type       = var.ami_type
+    instance_types = var.instance_types
+    min_size       = var.max_size
+    max_size       = var.max_size
+    desired_size   = var.desired_size
+    }
+  }
   access_entries = {
     admin = {
       kubernetes_groups = ["masters"]

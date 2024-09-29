@@ -3,235 +3,149 @@
 This repository provides a Terraform configuration for provisioning an Amazon Elastic Kubernetes Service (EKS) cluster on AWS.
 
 ## Repository Structure
-  - `.github/workflow/pre-commit.yml`: A Gihub action pipeline that runs when opening/updating a PullRequest to ensure the terraform formatting, linting, validation, etc are valid.
-  - `.github/workflow/terraform-pipeline.yaml`: Another Github action pipeline that makes it easy to deploy the terraform. 
-  - `modules`: Contains `eks`, and `vpc` modules.
-  - `tfvars/dev.tfvars` and `tfvars/prod.tfvars`: Override default variables and contain the spicific environment values for each variable.
-  - `pre-commit-config.yaml`: Contains the pre-commit configs and hooks.
-  - `config.tf`: Contains the required Terraform provider configuration, AWS Region, and Terraform state backend configurations.
-  - `main.tf`: Main Terraform configuration for setting up the EKS cluster.
-  - `outputs.tf`: Outputs of the Terraform configuration (such as the cluster endpoint, cluster certificat_authority, etc.).
-  - `variables.tf`: Contains the input variables for the Terraform configuration.
+  - [Gihub action pipeline](./.github/workflows/pre-commit.yaml) that runs when opening/updating a PullRequest to ensure the terraform formatting, linting, validation, etc are valid.
+  - [Infra pipeline](./.github/workflow/infra-pipeline.yaml): Another Github action pipeline that makes it easy to directly trigger infrastructure deployment. 
+  - [Terraform modules](modules): Contains `eks`, and `vpc` modules. *modules should be in a diffrent repo to handle the module versions using GitHub tags.*
+  - [pre-commit configurations](./pre-commit-config.yaml): (Documentation)[https://pre-commit.com/] Contains the pre-commit configs and hooks.
+  - [Terragrunt code](./aws): Contains the Terragrunt configuration for two environments sharing one s3 backend, each environment can be deployed in diffrent or the same AWS account (current setup is diffrent accounts).
 
 ## Prerequisites
 Before deploying the EKS cluster, ensure you have the following tools installed and configured on your local machine:
 
 - [Terraform](https://www.terraform.io/downloads.html) (v1.5.0 or higher)
+- [Terragrunt](https://terragrunt.gruntwork.io/docs/getting-started/install/)(v0.67.14 or higher)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) (configured with credentials)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) (for managing the Kubernetes cluster)
 - [Helm](https://helm.sh/docs/intro/install/) (optional, for deploying applications on the cluster)
-- Setup an S3 bucket as a terraform state backend in `config.tf`:
+- Setup an S3 bucket as a terraform state backend in [Terragrunt backend config](./aws/terragrunt.hcl):
 
   ```
-  terraform {
-    backend "s3" {
-      bucket = "<bucket_name>"
-      key    = "<some_key_path>/terraform.tfstate"
-      region = "<region>"
+  remote_state {
+  backend = "s3"
+  config = {
+    bucket = "<bucket_name>"
+    key    = "${path_relative_to_include()}/terraform.tfstate"
+    region = "<aws_region>"
+    dynamodb_table  = "<terragrunt-locks-table>"
     }
-  .....
   }
   ```
-
-### AWS IAM Permissions
-
-You need appropriate AWS IAM permissions to create resources such as:
-
-- EKS cluster
-- VPC, subnets, and security groups
-- IAM roles and policies
-- EC2 instances for worker nodes
-  
-  *Ensure your AWS credentials are properly set up either via the AWS CLI (`aws configure`) or via environment variables.*
+- Complete the Terragrunt configurations by adding the following in each environment `account.yaml`:
+  - aws_region: "<aws-region>"
+  - aws_account_id: "<aws-account-id>"
+  - account_name: "<account-name>"
+- Complete each resource config in `config.yaml`
 
 ## How to Deploy 
 ### A. Using the GitHub action pipeline
-*This way is more efficient to run the terraform and ensure the configuration is correct every time we are deploying without any human factor error.*
-concurrency group to prevent multiple runs of the same workflow
+*Notes: the pipeline is a proof of concept it should cover more cases than just applying the infra*
+
+* This way is more efficient to directly deploy the environment.
+* concurrency group to prevent multiple runs of the same workflow as an extra step to lock state file.
+* It must use a self-hosted runner that has access to the AWS accounts and can manage the infra.
+
 #### Workflow Overview
 
-The Terraform CI/CD pipeline consists of two main jobs:
-1. **Terraform Plan**: This job initializes Terraform, generates a plan, and saves it as an artifact.
-2. **Terraform Apply**: This job applies the Terraform plan generated in the previous job.
-*it also contains these configurations to ensure quality:*
+The infra CI/CD pipeline consists of one main job:
+1. **terragrunt**: This job initializes and initializes the necessary components, initializes, generates, and applies.
+
+*Notes:
+it is possible to run this job in a GitHub environment which requires approvals in case of deploying to prod. tis can be achived by creating two GitHub environments and setting the desired configuration to each one.*
+
 3. The pipeline has a limited choice to ensure no typo mistakes in the input environment name.
-4. `github Action Sammery will show the terraform changes that detected.
-5. `terraform apply` job will run only from the `main` branch assuming it is protected and has the latest valid code`
-6. `prod` envoronment ` is created in the Github action environment that need approval before execution to ensure the deployment is approved by authorized person.
 
 ### Workflow Trigger
 
-The workflow is triggered using the `workflow_dispatch` event, allowing manual execution with the option to specify the target environment (either `dev` or `prod`).
+[The workflow](https://github.com/ahmedbadawy4/terraform-infrastructure/actions/workflows/infra-pipeline.yaml) is triggered using the `workflow_dispatch` event, allowing manual execution with the option to specify the target environment (example `aws/dev/vpc` to deploy the vpc in the dev environment).
 
-#### Steps:
+### Using Atlantis
 
-1. Click on the **Run workflow** button.
-2. Select the desired **target environment** from the dropdown options (`dev` or `prod`).
-3. Click the **Run workflow** button to start the execution.
+[Atlantis](https://www.runatlantis.io/) is a tool for automating Terraform and Terragrunt workflows using pull requests (PRs). With Atlantis, infrastructure changes are deployed automatically when PRs are merged into specific branches, ensuring a consistent and automated CI/CD pipeline for infrastructure management.
 
-### B. using local machine.
+*Important notes: Terragrunt and atlantis required respect of the infra dependencies order in creating/changing/deleting the resources.*
+*Example: the VPC needs to be deployed before the EKS.*
 
-#### 1. Clone the Repository
+#### Steps to Use Atlantis with Terragrunt
 
-First, clone this repository to your local machine:
+1. **Setup Atlantis**
 
-```bash
-git clone https://github.com/ahmedbadawy4/terraform-eks.git
-cd terraform-eks
-```
+   Ensure that Atlantis is configured and running on your infrastructure. You can either:
+   - Run Atlantis as a service within your infrastructure (e.g., in Kubernetes, EC2, etc.).
+   - Use a managed Atlantis service.
 
-#### 2. Configure Variables
-Each environment variable can be customized by modifying the variables in the `tfvars/<environment>.tfvars` file
+   Configure Atlantis with the following:
+   - **GitHub Webhooks**: To trigger Atlantis on pull request events.
+      - Navigate to your repository on GitHub.
+      - Go to Settings > Webhooks > Add webhook.
+      - Set the payload URL to point to your Atlantis server, e.g., http://<your-atlantis-url>/events.
+      - Set the content type to application/json.
+      - Choose "Let me select individual events" and select Pull Requests and Push events.
+      - Save the webhook.
+   - **Repository Atlantis YAML Config**: [atlantis.yaml](./atlantis.yaml) defines how Atlantis handles PRs and what Terraform/Terragrunt commands to run.
+    - **Server Atlantis Config**: [Documentation](https://www.runatlantis.io/docs/server-side-repo-config) A Server-Side Config file is used for more groups of server config that can't reasonably be expressed by repository Atlantis YAML Config.
 
-```
-environment             = <envieronment_name>
-developer_principal_arn = "<developers SSO iam role arn>"
-admin_principal_arn     = "<admin SSO iam role arn>"
-eks_managed_node_groups = {
-  default = {
-    ami_type       = "node_group_ami_type_of" #better to build your ami template that is customized properly
-    instance_types = ["<instance_type>"]
-    min_size       = <Min number of instances>
-    max_size       = <Max number of instances>
-    desired_size   = <Desire number of instances>
-  }
-}
-```
-#### 3. Initialize Terraform
-Run the following command to initialize Terraform, which will download the necessary modules and provider plugins:
+2. **Trigger a Deployment**
 
-```
-terraform init
-```
+   When a pull request is created or updated in GitHub to modify the infrastructure code, Atlantis will automatically trigger a `plan` and post the plan output as a comment in the pull request. To approve and deploy the changes:
 
-#### 4. Create an Execution Plan
-The execution plan shows you what Terraform will do when you apply it. You can create the plan by running:
+   - **Run `plan`**:
+     In the pull request comment section, use the Atlantis command:
+     ```bash
+     atlantis plan
+     ```
 
-```
-terraform plan --var-file=tfvars/<envieronment_name>.tfvars -out=tfplan -no-color
-```
-This will generate a plan file tfplan, which you can inspect or save for later use.
+   - **Run `apply`**:
+     Once the plan has been reviewed and approved, execute the following command in the PR comment to deploy:
+     ```bash
+     atlantis apply
+     ```
 
-#### 5. Apply the Plan
-To deploy the EKS cluster and all associated resources, apply the generated plan:
+3. **Review the PR**
 
-```
-terraform apply --var-file=tfvars/<envieronment_name>.tfvars tfplan
-```
-This command will provision the resources in your AWS account.
+   - Atlantis will comment the `plan` results on the pull request.
+   - If everything looks good, merge the PR to trigger an automatic `apply`.
 
-#### 6. Configure `kubectl` to Access the EKS Cluster
-Once the cluster is successfully created, you can use the AWS CLI to update your kubectl configuration to interact with the new EKS cluster:
+4. **Automated Plan and Apply on Main Branch**
 
-```
-aws eks --region <region> update-kubeconfig --name <cluster_name>
-```
-This command configures kubectl to use the EKS cluster you just deployed.
-
-#### 7. Verify the Cluster (Optional)
-Use kubectl to verify that the cluster is running and accessible:
-
-```
-kubectl get nodes
-```
-This should display a list of worker nodes if everything was set up correctly.
-
-## How to Destroying the Cluster (all the deployed infra)
-If you need to delete all resources created by Terraform, run the following command:
-
-```
-terraform destroy --var-file=tfvars/dev.tfvars
-```
-This will tear down all infrastructure provisioned by this configuration.
-
-## Troubleshooting
-
-If you encounter issues during deployment:
-
-1. Ensure your AWS credentials are configured and have sufficient permissions.
-2. Ensure the S3 bucket that works as a backend is configured correctly and the local machine has access to it.
-3. Check that your AWS region, VPC, and subnets are correct.
-4. Look at the Terraform state and plan output for details on errors.
-5. Re-run terraform in debug mood to get more details example `TF_LOG=DEBUG TF_LOG_PATH=terraform_debug.log terraform apply`
-6. Ensure the `kubectl` configuration is correctly pointing to the EKS cluster.
-
-
-## (Advanced) steps to use Atlantis
-Atlantis is used to automate Terraform workflows via GitHub pull requests (PRs). It listens for changes in the Terraform configuration and automatically runs `terraform plan` and `terraform apply` within PRs based on certain commands.
-
-### Prerequisites
-
-Before using Atlantis, ensure the following are set up:
-
-- Atlantis is deployed and running (usually in a container or Kubernetes).
-- Atlantis has access to your GitHub repository via a webhook and appropriate access permissions.
-- Your Terraform codebase is compatible with Atlantis.
-
-### Steps to Use Atlantis
-
-1. **Install and Deploy Atlantis**
-
-   Atlantis can be deployed in multiple ways, such as on **Kubernetes**, **Docker**, or directly on a virtual machine. If you haven’t already set up Atlantis, follow the installation instructions in the [official Atlantis documentation](https://www.runatlantis.io/docs/install.html).
-
-2. **Configure Atlantis in Your Repository**
-
-   Ensure your repository has a valid `atlantis.yaml` file to define your Atlantis configuration. Here's an example configuration file:
-
-   ```yaml
-   version: 3
-   projects:
-     - name: my-eks-cluster
-       dir: .
-       workflow: default
-       autoplan:
-         when_modified: ["*.tf", "*.tfvars"]
-         enabled: true
-    ```
-  `dir`: Specifies the directory where your Terraform files are located (in this case, the root directory).
-  `autoplan`: Automatically runs terraform plan when a .tf or .tfvars file is modified.
-
-3. **Set Up the GitHub Webhook**
-
-To automate the Terraform runs, you need to create a webhook in your GitHub repository that points to your Atlantis server. Follow these steps:
-
-  - Navigate to your repository on GitHub.
-  - Go to Settings > Webhooks > Add webhook.
-  - Set the payload URL to point to your Atlantis server, e.g., http://<your-atlantis-url>/events.
-  - Set the content type to application/json.
-  - Choose "Let me select individual events" and select Pull Requests and Push events.
-  - Save the webhook.
-
-4. **Using Atlantis in Pull Requests**
-Once Atlantis is set up and connected, the following steps describe how to use it:
-
-  - Open a Pull Request (PR): When a pull request that modifies .tf files is created, Atlantis will automatically run the terraform plan and post the result in the PR.
-
-  - Running Terraform Plan: When a pull request is opened, Atlantis runs the Terraform plan automatically and posts the plan result as a comment on the PR. You can also manually trigger a plan by commenting on the PR:
-
-```
-atlantis plan
-```
-  - Running Terraform Apply: After reviewing the plan, you can trigger Terraform Apply by commenting on the pull request:
-
-```
-atlantis apply
-```
-  - Auto-Plan and Auto-Apply: If autoplan is enabled in your `atlantis.yaml` configuration, Atlantis will automatically run the plan when changes are detected. The apply step still requires approval via a comment.
-
-5. **Merge the Pull Request**
-Once the Terraform plan is successfully applied and everything looks good, the pull request can be merged. Atlantis ensures that your infrastructure changes are deployed only after the `atlantis apply` command is approved and successfully executed.
-
+   Once changes are merged into the `main` (or other deployment branches like `dev` or `prod`), Atlantis will automatically run the `apply` command to deploy the infrastructure changes.
 
 #### Atlantis Commands in Pull Requests
 Here are some useful Atlantis commands you can run directly within PR comments:
 
   - `atlantis plan`: Runs `terraform plan` and posts the output in the PR.
   - `atlantis apply`: Runs `terraform apply` and applies the Terraform changes.
-  - `atlantis unlock`: Unlocks a PR that is locked by an incomplete plan or apply.
+  - `atlantis unlock`: Unlocks a PR locked by an incomplete plan or apply.
   - `atlantis help`: Provides a list of available commands.
 
+#### Tips for Using Atlantis with Terragrunt
+
+- Ensure that each environment (dev, prod, etc.) has its directory structure in the repository (e.g., `infra/dev`, `infra/prod`).
+- Configure `autoplan` in `.atlantis.yaml` to automatically run the `plan` when Terraform/Terragrunt files are modified.
+- Atlantis locks the state of your infrastructure during the `apply` process to ensure only one deployment happens at a time, preventing conflicts.
+
+## How to Destroying the Cluster (all the deployed infra)
+If you need to delete some resources delete the folder that contains terragrunt.hcl and open a Pull Request.
+
+*IMPORTANT: follow the dependency order during deleting the  resources*
+
+
+## Troubleshooting
+
+If you encounter issues during deployment:
+
+1. Ensure Atlantis server is configured and has sufficient AWS permissions.
+2. Ensure the dependency order in the infra.
+2. Ensure the S3 bucket that works as a backend is configured correctly.
+3. Check that your AWS region, VPC, and subnets are correct.
+4. Use `--verbose` to append the Atlantis output logs for details on errors.
+
+
 ## To-do list
-- Create a custom AMI image that is customized and configured with the necessary configurations.
-- Create Self hosted runner to be used in the GitHub actions
-- we could use an opsnSSL command to encrypt the tfplan to ensure the security of the plan file when has been uploaded as an artifact to Github.
-- Modules can be moved to another repository to be able to create a github tags and be safe to use it as a source in the teraform to ensure the reliability and ignore any random/unplanned code changes.
+- Create a custom AMI image for EKS that is customized and configured with the necessary configurations.
+- Create Self hosted runner to be used in the GitHub actions if needed.
+- Modules should be moved to another repository to be able to create GitHub tags and be safe to use as 
+  a source in the terraform to ensure reliability and ignore any random/unplanned code changes.
+- Create a GitHub app to integrate with Atlantis (current setup used my account)
+- SSO setup for Atlantis server, right now it is managed by basic authentication.
+- expand the functionality of `pre-commit` for better quality.
+- Atlantis repo config and server config need more adjustment based on the size of the infrastructure
