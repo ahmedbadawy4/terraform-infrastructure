@@ -43,18 +43,6 @@ variable "aws_tags" {
   default     = {}
 }
 
-variable "eks_managed_node_groups" {
-  description = "the managed node groups configs"
-  type = map(object({
-    ami_type       = string
-    instance_types = list(string)
-    min_size       = number
-    max_size       = number
-    desired_size   = number
-  }))
-  default = {}
-}
-
 variable "admin_principal_arn" {
   description = "the ARN of the admin role"
   type        = string
@@ -77,4 +65,34 @@ variable "admin_access_scope" {
   type        = list(string)
   default     = ["default", "development", "staging", "production"]
 
+}
+
+variable "ami_type" {
+  description = "the AMI type"
+  type        = string
+  default     = "AL2023_x86_64_STANDARD"
+}
+
+variable "instance_types" {
+  description = "the instance types"
+  type        = list(string)
+  default     = ["m5.xlarge"]
+}
+
+variable "min_size" {
+  description = "the minimum size"
+  type        = number
+  default     = 2
+}
+
+variable "max_size" {
+  description = "the maximum size"
+  type        = number
+  default     = 4
+}
+
+variable "desired_size" {
+  description = "the desired size"
+  type        = number
+  default     = 2
 }

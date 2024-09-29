@@ -8,15 +8,16 @@ Before deploying the EKS cluster, ensure you have the following tools installed 
 - [Terraform](https://www.terraform.io/downloads.html) (v1.5.0 or higher)
 - [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) (configured with credentials)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/) (for managing the Kubernetes cluster)
-- [Helm](https://helm.sh/docs/intro/install/) (optional, for deploying applications on the cluster)
 - Setup an S3 bucket as a terraform state backend in `config.tf`:
 
   ```
   terraform {
     backend "s3" {
-      bucket = "<bucket_name>"
-      key    = "<some_key_path>/terraform.tfstate"
-      region = "<region>"
+      bucket         = "<bucket_name>"
+      key            = "<some_key_path>/terraform.tfstate"
+      region         = "<region>"
+      secret_key     = "<secret_key>"
+      dynamodb_table = "<dynamodb_table_name>"
     }
   .....
   }
@@ -35,56 +36,43 @@ You need appropriate AWS IAM permissions to create resources such as:
 
 ## How to Deploy 
 
-#### 1. Clone the Repository
-
-First, clone this repository to your local machine:
-
-```bash
-git clone https://github.com/ahmedbadawy4/terraform-eks.git
-cd terraform-eks
-```
-
-#### 2. Configure Variables
-Each environment variable can be customized by modifying the variables in the `tfvars/<environment>.tfvars` file
+#### 1. Configure Variables
+Each environment variable can be customized create a `terraform.tfvars` file and add the below values:
 
 ```
 environment             = <envieronment_name>
 developer_principal_arn = "<developers SSO iam role arn>"
 admin_principal_arn     = "<admin SSO iam role arn>"
-eks_managed_node_groups = {
-  default = {
-    ami_type       = "node_group_ami_type_of" #better to build your ami template that is customized properly
-    instance_types = ["<instance_type>"]
-    min_size       = <Min number of instances>
-    max_size       = <Max number of instances>
-    desired_size   = <Desire number of instances>
-  }
-}
+ami_type                = "node_group_ami_type_of" #better to build your ami template that is customized properly
+instance_types          = ["<instance_type>"]
+min_size                = <Min number of instances>
+max_size                = <Max number of instances>
+desired_size            = <Desire number of instances>
 ```
-#### 3. Initialize Terraform
+#### 2. Initialize Terraform
 Run the following command to initialize Terraform, which will download the necessary modules and provider plugins:
 
 ```
 terraform init
 ```
 
-#### 4. Create an Execution Plan
+#### 3. Create an Execution Plan
 The execution plan shows you what Terraform will do when you apply it. You can create the plan by running:
 
 ```
-terraform plan --var-file=tfvars/<envieronment_name>.tfvars -out=tfplan -no-color
+terraform plan --var-file=terraform.tfvars -out=tfplan -no-color
 ```
 This will generate a plan file tfplan, which you can inspect or save for later use.
 
-#### 5. Apply the Plan
+#### 4. Apply the Plan
 To deploy the EKS cluster and all associated resources, apply the generated plan:
 
 ```
-terraform apply --var-file=tfvars/<envieronment_name>.tfvars tfplan
+terraform apply --var-file=terraform.tfvars tfplan
 ```
 This command will provision the resources in your AWS account.
 
-#### 6. Configure `kubectl` to Access the EKS Cluster
+#### 5. Configure `kubectl` to Access the EKS Cluster
 Once the cluster is successfully created, you can use the AWS CLI to update your kubectl configuration to interact with the new EKS cluster:
 
 ```
@@ -92,7 +80,7 @@ aws eks --region <region> update-kubeconfig --name <cluster_name>
 ```
 This command configures kubectl to use the EKS cluster you just deployed.
 
-#### 7. Verify the Cluster (Optional)
+#### 6. Verify the Cluster (Optional)
 Use kubectl to verify that the cluster is running and accessible:
 
 ```

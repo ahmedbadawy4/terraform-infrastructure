@@ -1,0 +1,72 @@
+---
+- name: Install and configure Atlantis on EC2
+  hosts: atlantis
+  become: yes
+  vars:
+    atlantis_github_user: "<your-github-username>"
+    atlantis_github_token: "<your-github-token>"
+    atlantis_repo_allowlist: "github.com/<your-repo>"
+
+  tasks:
+
+    - name: Update the package manager cache
+      ansible.builtin.yum:
+        name: "*"
+        state: latest
+
+    - name: Install dependencies (Docker, Git)
+      ansible.builtin.yum:
+        name:
+          - docker
+          - git
+        state: present
+
+    - name: Start and enable Docker service
+      ansible.builtin.systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ec2-user to the docker group
+      ansible.builtin.user:
+        name: ec2-user
+        groups: docker
+        append: yes
+
+    - name: Pull the Atlantis Docker image
+      community.docker.docker_image:
+        name: runatlantis/atlantis
+        tag: latest
+        source: pull
+
+    - name: Create a directory for Atlantis data
+      ansible.builtin.file:
+        path: /mnt/atlantis
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Run Atlantis Docker container
+      community.docker.docker_container:
+        name: atlantis
+        image: runatlantis/atlantis:latest
+        state: started
+        restart_policy: always
+        published_ports:
+          - "80:4141"
+        volumes:
+          - /mnt/atlantis:/atlantis
+        env:
+          ATLANTIS_GH_USER: "{{ atlantis_github_user }}"
+          ATLANTIS_GH_TOKEN: "{{ atlantis_github_token }}"
+          ATLANTIS_GH_REPO_ALLOWLIST: "{{ atlantis_repo_allowlist }}"
+
+    - name: Ensure Docker container is running
+      community.docker.docker_container_info:
+        name: atlantis
+      register: atlantis_container
+
+    - name: Debug Atlantis container information
+      ansible.builtin.debug:
+        msg: "{{ atlantis_container }}"

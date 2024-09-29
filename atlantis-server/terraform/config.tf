@@ -7,7 +7,7 @@ provider "aws" {
         "ei:environment" = var.environment,
         "team"           = var.team,
         "business-unit"  = var.business_unit
-        "component-name" = var.cluster_name
+        "component-name" = "atlantis-server"
       }
     )
   }
@@ -15,9 +15,11 @@ provider "aws" {
 
 terraform {
   backend "s3" {
-    bucket = "terraform-state-801627643938"
-    key    = "luminor-eks//terraform.tfstate"
-    region = "eu-west-1"
+    bucket         = "<bucket_name>"
+    key            = "<some_key_path>/terraform.tfstate"
+    region         = "<region>"
+    secret_key     = "<secret_key>"
+    dynamodb_table = "<dynamodb_table_name>"
   }
   required_version = "~> 1.4"
   required_providers {
